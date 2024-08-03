@@ -177,79 +177,6 @@ add_entity (struct game *game, enum entity_type type, int x, int y, enum team te
     }
 }
 
-static void
-init (struct game *game)
-{
-    srand (117); // Use the same seed
-
-    ASSERT (signal (SIGINT, signal_handler) != SIG_ERR &&
-            signal (SIGSEGV, signal_handler) != SIG_ERR);
-
-    game->buffer = (u32 *) malloc (WINDOW_WIDTH * WINDOW_HEIGHT * sizeof (u32));
-    game->dt = 1.0f / 60.0f;
-    game->pitch = sizeof (u32) * WINDOW_WIDTH; // u32 is 4 bytes :'(
-
-    printf ("initialising SDL\n");
-
-    SDL_Init (SDL_INIT_VIDEO);
-    game->window = SDL_CreateWindow ("auto-pong",
-            SDL_WINDOWPOS_CENTERED,
-            SDL_WINDOWPOS_CENTERED,
-            WINDOW_WIDTH, WINDOW_HEIGHT,
-            SDL_WINDOW_BORDERLESS);
-    ASSERT (game->window);
-
-    game->renderer = SDL_CreateRenderer (game->window, -1, SDL_RENDERER_ACCELERATED);
-    ASSERT (game->renderer);
-
-    game->texture = SDL_CreateTexture (game->renderer,
-            SDL_PIXELFORMAT_RGBA8888,
-            SDL_TEXTUREACCESS_STREAMING,
-            WINDOW_WIDTH, WINDOW_HEIGHT);
-    ASSERT (game->texture);
-
-    printf ("Loading map\n");
-    /*
-     * Load map
-     *
-     * TODO: not sure where this should go? the bits need to be defined somewhere i guess
-     */
-    for (int y = 0; y < 18; y++)
-    {
-        for (int x = 0; x < 18; x++)
-        {
-            unsigned int block = map[y][x];
-            u8 type = block & 0x0F;
-            u8 team = (block & 0xF0) >> 4;
-
-            switch (team)
-            {
-                case 0x1:
-                    team = E_TEAM_LIGHT;
-                    break;
-                case 0x2:
-                    team = E_TEAM_DARK;
-                    break;
-            }
-
-            switch (type)
-            {
-                case 0x1:
-                    add_entity (game, E_TYPE_WALL, x, y, E_TEAM_NONE);
-                    break;
-                case 0x2:
-                    add_entity (game, E_TYPE_BLOCK, x, y, team);
-                    break;
-                case 0x4:
-                    add_entity (game, E_TYPE_BALL, x, y, team);
-                    add_entity (game, E_TYPE_BLOCK, x, y, team == 0x1 ? E_TEAM_DARK : E_TEAM_LIGHT);
-                    break;
-            }
-        }
-    }
-
-    printf ("Added %d entities\n", game->n_entities);
-}
 
 static void
 handle_input (void)
@@ -572,6 +499,80 @@ signal_handler (int signal)
             running = false;
             break;
     }
+}
+
+static void
+init (struct game *game)
+{
+    srand (117); // Use the same seed
+
+    ASSERT (signal (SIGINT, signal_handler) != SIG_ERR &&
+            signal (SIGSEGV, signal_handler) != SIG_ERR);
+
+    game->buffer = (u32 *) malloc (WINDOW_WIDTH * WINDOW_HEIGHT * sizeof (u32));
+    game->dt = 1.0f / 60.0f;
+    game->pitch = sizeof (u32) * WINDOW_WIDTH; // u32 is 4 bytes :'(
+
+    printf ("initialising SDL\n");
+
+    SDL_Init (SDL_INIT_VIDEO);
+    game->window = SDL_CreateWindow ("auto-pong",
+            SDL_WINDOWPOS_CENTERED,
+            SDL_WINDOWPOS_CENTERED,
+            WINDOW_WIDTH, WINDOW_HEIGHT,
+            SDL_WINDOW_BORDERLESS);
+    ASSERT (game->window);
+
+    game->renderer = SDL_CreateRenderer (game->window, -1, SDL_RENDERER_ACCELERATED);
+    ASSERT (game->renderer);
+
+    game->texture = SDL_CreateTexture (game->renderer,
+            SDL_PIXELFORMAT_RGBA8888,
+            SDL_TEXTUREACCESS_STREAMING,
+            WINDOW_WIDTH, WINDOW_HEIGHT);
+    ASSERT (game->texture);
+
+    printf ("Loading map\n");
+    /*
+     * Load map
+     *
+     * TODO: not sure where this should go? the bits need to be defined somewhere i guess
+     */
+    for (int y = 0; y < 18; y++)
+    {
+        for (int x = 0; x < 18; x++)
+        {
+            unsigned int block = map[y][x];
+            u8 type = block & 0x0F;
+            u8 team = (block & 0xF0) >> 4;
+
+            switch (team)
+            {
+                case 0x1:
+                    team = E_TEAM_LIGHT;
+                    break;
+                case 0x2:
+                    team = E_TEAM_DARK;
+                    break;
+            }
+
+            switch (type)
+            {
+                case 0x1:
+                    add_entity (game, E_TYPE_WALL, x, y, E_TEAM_NONE);
+                    break;
+                case 0x2:
+                    add_entity (game, E_TYPE_BLOCK, x, y, team);
+                    break;
+                case 0x4:
+                    add_entity (game, E_TYPE_BALL, x, y, team);
+                    add_entity (game, E_TYPE_BLOCK, x, y, team == 0x1 ? E_TEAM_DARK : E_TEAM_LIGHT);
+                    break;
+            }
+        }
+    }
+
+    printf ("Added %d entities\n", game->n_entities);
 }
 
 int
