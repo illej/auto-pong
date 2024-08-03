@@ -329,6 +329,26 @@ draw_circle (SDL_Renderer *renderer, float centreX, float centreY, float radius)
     }
 }
 
+static void
+draw_circle_filled (SDL_Renderer *renderer, float centreX, float centreY, float radius)
+{
+    int r2 = radius * radius;
+    int area = r2 << 2;
+    int rr = radius * 2;
+
+    // Brute force fill
+    for (int i = 0; i < area; i++)
+    {
+        int tx = (i % rr) - radius;
+        int ty = (i / rr) - radius;
+
+        if (tx * tx + ty * ty <= r2)
+        {
+            SDL_RenderDrawPoint (renderer, centreX + tx, centreY + ty);
+        }
+    }
+}
+
 static bool
 detect_hit_aabb (struct entity *a, v2 new_p, struct entity *b)
 {
@@ -524,7 +544,7 @@ update (struct game *game)
             SDL_SetRenderDrawColor (game->renderer, 0xFF, 0x11, 0x11, 0xFF);
         }
 
-        draw_circle (game->renderer, (e->pos.x + e->radius) * BLOCK_SIZE_PX, (e->pos.y + e->radius) * BLOCK_SIZE_PX, e->radius * BLOCK_SIZE_PX);
+        draw_circle_filled (game->renderer, (e->pos.x + e->radius) * BLOCK_SIZE_PX, (e->pos.y + e->radius) * BLOCK_SIZE_PX, e->radius * BLOCK_SIZE_PX);
     }
 }
 
