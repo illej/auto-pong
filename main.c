@@ -517,7 +517,11 @@ update (struct game *game)
         p->pos.x += p->velocity.x * game->dt;
         p->pos.y += p->velocity.y * game->dt;
     }
+}
 
+static void
+render (struct game *game)
+{
     for (int i = 0; i < game->n_entities; i++)
     {
         struct entity *e = &game->entities[i];
@@ -595,6 +599,7 @@ main (int argc, char **argv)
         SDL_RenderClear (game.renderer);
 
         update (&game);
+        render (&game);
 
         SDL_RenderPresent (game.renderer);
         SDL_Delay (FRAME_TIME_MS);
