@@ -180,6 +180,11 @@ add_entity (struct game *game, enum entity_type type, int x, int y, enum team te
 static void
 init (struct game *game)
 {
+    srand (117); // Use the same seed
+
+    ASSERT (signal (SIGINT, signal_handler) != SIG_ERR &&
+            signal (SIGSEGV, signal_handler) != SIG_ERR);
+
     game->buffer = (u32 *) malloc (WINDOW_WIDTH * WINDOW_HEIGHT * sizeof (u32));
     game->dt = 1.0f / 60.0f;
     game->pitch = sizeof (u32) * WINDOW_WIDTH; // u32 is 4 bytes :'(
@@ -569,25 +574,11 @@ signal_handler (int signal)
     }
 }
 
-static void
-trace_init (void)
-{
-    bool ok = (signal (SIGINT, signal_handler) != SIG_ERR &&
-               signal (SIGSEGV, signal_handler) != SIG_ERR);
-    if (!ok)
-    {
-        fprintf (stderr, "Failed to initialise signal handler\n");
-    }
-}
-
 int
 main (int argc, char **argv)
 {
     struct game game = {0};
 
-    srand (117); // Use the same seed
-
-    trace_init ();
     init (&game);
 
     running = true;
