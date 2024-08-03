@@ -80,7 +80,6 @@ struct collision
  * Globals
  */
 static volatile bool running;
-static volatile bool pause;
 
 
 static char *
@@ -272,13 +271,7 @@ handle_input (void)
                     printf("esc\n");
                     running = false;
                 }
-                if (e.key.keysym.sym == SDLK_SPACE)
-                {
-                    printf ("space - unpause\n");
-                    pause = false;
-                }
                 break;
-
         }
     }
 }
@@ -532,17 +525,7 @@ update (struct game *game)
 
             if (hit)
             {
-                printf ("hit[%s] vec=%.02f %.02f\n",
-                        direction_str (collision.direction), collision.vector.x, collision.vector.y);
-
                 collision_resolve (p, hit, &collision);
-
-#if 0
-                if (!pause)
-                {
-                    pause = true;
-                }
-#endif
                 break;
             }
         }
@@ -624,13 +607,10 @@ main (int argc, char **argv)
     {
         handle_input ();
 
-        if (!pause)
-        {
-            SDL_SetRenderDrawColor (game.renderer, 0x00, 0x00, 0x00, 0xFF);
-            SDL_RenderClear (game.renderer);
+        SDL_SetRenderDrawColor (game.renderer, 0x00, 0x00, 0x00, 0xFF);
+        SDL_RenderClear (game.renderer);
 
-            update (&game);
-        }
+        update (&game);
 
         SDL_RenderPresent (game.renderer);
         SDL_Delay (FRAME_TIME_MS);
