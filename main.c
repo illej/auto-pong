@@ -87,12 +87,9 @@ colour_str (struct entity *e)
 {
     switch (e->team)
     {
-        case E_TEAM_LIGHT:
-            return "Light";
-        case E_TEAM_DARK:
-            return "Dark";
-        default:
-            return "None";
+        case E_TEAM_LIGHT: { return "Light"; }
+        case E_TEAM_DARK:  { return "Dark"; }
+        default:           { return "None"; }
     }
 }
 
@@ -134,14 +131,10 @@ type_str (struct entity *e)
 {
     switch (e->type)
     {
-        case E_TYPE_WALL:
-            return "Wall";
-        case E_TYPE_BLOCK:
-            return "Block";
-        case E_TYPE_BALL:
-            return "Player";
-        default:
-            return "--";
+        case E_TYPE_WALL:  { return "Wall"; }
+        case E_TYPE_BLOCK: { return "Block"; }
+        case E_TYPE_BALL:  { return "Player"; }
+        default:           { return "--"; }
     }
 }
 
@@ -257,6 +250,7 @@ static void
 handle_input (void)
 {
     SDL_Event e;
+
     while (SDL_PollEvent (&e) != 0)
     {
         switch (e.type)
@@ -418,27 +412,23 @@ static enum direction
 vector2_direction (v2 target)
 {
     v2 compass[] = {
-        [UP] = {  0.0f, -1.0f }, // up
-        [RIGHT] = {  1.0f,  0.0f }, // right
-        [DOWN] = {  0.0f,  1.0f }, // down
-        [LEFT] = { -1.0f,  0.0f }  // left
+        [UP]    = {  0.0f, -1.0f },
+        [RIGHT] = {  1.0f,  0.0f },
+        [DOWN]  = {  0.0f,  1.0f },
+        [LEFT]  = { -1.0f,  0.0f }
     };
     float max = 0.0f;
     u32 best_match = UINT32_MAX;
 
-//    printf ("target: x=%.02f y=%.02f\n", target.x, target.y);
     for (int i = 0; i < LEN (compass); i++)
     {
         float dot_product = v2_inner (v2_norm (target), compass[i]);
-//        printf (" dot[%s]: %.02f\n", direction_str (i), dot_product);
         if (dot_product > max)
         {
             max = dot_product;
             best_match = i;
         }
     }
-
-//    printf (" match: %s\n", direction_str (best_match));
 
     return best_match;
 }
@@ -452,37 +442,11 @@ collision_resolve (struct entity *a, struct entity *b, struct collision *collisi
     if (dir == LEFT || dir == RIGHT)
     {
         a->velocity.x = -a->velocity.x;
-
-#if 0
-        float penetration = a->radius - abs(diff.x);
-        if (dir == LEFT)
-        {
-            a->pos.x += penetration;
-        }
-        else
-        {
-            a->pos.x -= penetration;
-        }
-#endif
     }
     else
     {
         a->velocity.y = -a->velocity.y;
-
-#if 0
-        float penetration = a->radius - abs(diff.y);
-        if (dir == UP)
-        {
-            a->pos.y -= penetration;
-        }
-        else
-        {
-            a->pos.y += penetration;
-        }
-#endif
     }
-
-//    printf ("dir[%s] pos=%.02f %.02f vel=%.02f %.02f\n", direction_str (dir), a->pos.x, a->pos.y, a->velocity.x, a->velocity.y);
 }
 
 static void
