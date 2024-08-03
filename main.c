@@ -304,14 +304,14 @@ draw_circle (SDL_Renderer *renderer, float centreX, float centreY, float radius)
     while (x >= y)
     {
         //  Each of the following renders an octant of the circle
-        SDL_RenderDrawPoint(renderer, centreX + x, centreY - y);
-        SDL_RenderDrawPoint(renderer, centreX + x, centreY + y);
-        SDL_RenderDrawPoint(renderer, centreX - x, centreY - y);
-        SDL_RenderDrawPoint(renderer, centreX - x, centreY + y);
-        SDL_RenderDrawPoint(renderer, centreX + y, centreY - x);
-        SDL_RenderDrawPoint(renderer, centreX + y, centreY + x);
-        SDL_RenderDrawPoint(renderer, centreX - y, centreY - x);
-        SDL_RenderDrawPoint(renderer, centreX - y, centreY + x);
+        SDL_RenderDrawPoint (renderer, centreX + x, centreY - y);
+        SDL_RenderDrawPoint (renderer, centreX + x, centreY + y);
+        SDL_RenderDrawPoint (renderer, centreX - x, centreY - y);
+        SDL_RenderDrawPoint (renderer, centreX - x, centreY + y);
+        SDL_RenderDrawPoint (renderer, centreX + y, centreY - x);
+        SDL_RenderDrawPoint (renderer, centreX + y, centreY + x);
+        SDL_RenderDrawPoint (renderer, centreX - y, centreY - x);
+        SDL_RenderDrawPoint (renderer, centreX - y, centreY + x);
 
         if (error <= 0)
         {
@@ -342,7 +342,7 @@ detect_hit_aabb (struct entity *a, v2 new_p, struct entity *b)
     {
         hit = true;
     }
-    
+
     return hit;
 }
 
