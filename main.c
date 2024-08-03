@@ -457,9 +457,9 @@ update (struct game *game)
         struct entity *p = game->players[i];
         struct entity *hit = NULL;
 
-        for (int i = 0; i < game->n_entities; i++)
+        for (int j = 0; j < game->n_entities; j++)
         {
-            struct entity *test = &game->entities[i];
+            struct entity *test = &game->entities[j];
             struct collision collision = {0};
 
             if (collision_detect (p, test, &collision))
