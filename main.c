@@ -3,6 +3,7 @@
 #include <stdlib.h> // rand ()
 
 #include <SDL2/SDL.h>
+#include <box2d/box2d.h>
 
 #include "util.h"
 #include "trace.h"
@@ -513,7 +514,7 @@ init (struct game *game)
     game->dt = 1.0f / 60.0f;
     game->pitch = sizeof (u32) * WINDOW_WIDTH; // u32 is 4 bytes :'(
 
-    printf ("initialising SDL\n");
+    printf ("Initialising SDL\n");
 
     SDL_Init (SDL_INIT_VIDEO);
     game->window = SDL_CreateWindow ("auto-pong",
@@ -531,6 +532,11 @@ init (struct game *game)
             SDL_TEXTUREACCESS_STREAMING,
             WINDOW_WIDTH, WINDOW_HEIGHT);
     ASSERT (game->texture);
+
+    printf ("Initialising Box2D\n");
+    b2WorldDef world_def = b2DefaultWorldDef ();
+    world_def.gravity = (b2Vec2) { 0.0f, -10.0f };
+    b2WorldId world_id = b2CreateWorld (&world_def);
 
     printf ("Loading map\n");
     /*
