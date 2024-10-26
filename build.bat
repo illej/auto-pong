@@ -12,3 +12,5 @@ set ldflags=/link /subsystem:console /libpath:lib\x64 %libs%
 set source=main.c
 
 cl %cflags% %source% %ldflags%
+
+ctags -R --langmap=c:.c.h.cpp --languages=c .
