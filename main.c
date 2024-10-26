@@ -42,6 +42,8 @@ struct entity
     } team;
 
     u32 colour;
+
+    b2BodyId body_id;
 };
 
 struct game
@@ -60,6 +62,10 @@ struct game
     struct entity *players[2];
 
     float dt;
+
+    b2WorldId world_id;
+    int sub_step_count;
+    b2DebugDraw debug_draw;
 };
 
 enum direction
@@ -163,14 +169,46 @@ add_entity (struct game *game, enum entity_type type, int x, int y, enum team te
 
         if (e->type == E_TYPE_BALL)
         {
+            v2 velocity;
+
+            velocity.x = randf (-10.0f, 10.0f);
+            velocity.y = randf (-10.0f, 10.0f);
+
             game->players[game->n_players++] = e;
-            e->velocity.x = randf (-10.0f, 10.0f);
-            e->velocity.y = randf (-10.0f, 10.0f);
+            e->velocity.x = velocity.x;
+            e->velocity.y = velocity.y;
             e->radius = 0.5f;
 
-            printf ("Add player [@ x:%f y:%f] %s:%s\n",
-                    e->pos.x, e->pos.y, type_str (e), colour_str (e));
+            b2BodyDef body_def = b2DefaultBodyDef ();
+            body_def.position = (b2Vec2) { x, y };
+            body_def.type = b2_dynamicBody;
+            body_def.gravityScale = 0.0f;
+            body_def.linearVelocity.x = velocity.x;
+            body_def.linearVelocity.y = velocity.y;
+            e->body_id = b2CreateBody (game->world_id, &body_def);
+
+            b2Circle circle;
+//            circle.center = (b2Vec2) { x, y };
+            circle.radius = 0.5f;
+            b2ShapeDef shape_def = b2DefaultShapeDef ();
+            shape_def.density = 1.0f;
+            shape_def.friction = 0.0f;
+            shape_def.restitution = 1.0f;
+            b2CreateCircleShape (e->body_id, &shape_def, &circle);
         }
+        else if (e->type == E_TYPE_WALL)
+        {
+            b2BodyDef body_def = b2DefaultBodyDef ();
+            body_def.position = (b2Vec2) { x, y };
+            e->body_id = b2CreateBody (game->world_id, &body_def);
+
+            b2Polygon box = b2MakeBox(0.5f, 0.5f);
+            b2ShapeDef shape_def = b2DefaultShapeDef ();
+            b2CreatePolygonShape (e->body_id, &shape_def, &box);
+        }
+
+        printf ("Add %s [team:%s x:%.02f y:%.02f]\n",
+                type_str (e), colour_str (e), e->pos.x, e->pos.y);
     }
     else
     {
@@ -282,6 +320,54 @@ draw_circle_filled (SDL_Renderer *renderer, float centreX, float centreY, float 
     }
 }
 
+static void
+debug_draw_circle (b2Transform xfrm, float radius, b2HexColor color, void *context)
+{
+    struct game *game = context;
+    b2Vec2 p = xfrm.p;
+
+    // printf ("%s> p=%.02f,%.02f radius=%.02f\n", __func__, p.x, p.y, radius);
+    draw_circle_filled (game->renderer, (p.x + radius) * BLOCK_SIZE_PX, (p.y + radius) * BLOCK_SIZE_PX, radius * BLOCK_SIZE_PX);
+}
+
+static void
+draw_rect (SDL_Renderer *r, v2 topleft, v2 extent, int color)
+{
+    SDL_Rect rect = {
+        .x = topleft.x * BLOCK_SIZE_PX,
+        .y = topleft.y * BLOCK_SIZE_PX,
+        .w = extent.w * BLOCK_SIZE_PX,
+        .h = extent.h * BLOCK_SIZE_PX
+    };
+    int red   = (color & 0x00FF0000) >> 16;
+    int green = (color & 0x0000FF00) >> 8;
+    int blue  = (color & 0x000000FF) >> 0;
+    int alpha = 0xFF;
+
+    SDL_SetRenderDrawColor (r, red, green, blue, alpha);
+    SDL_RenderFillRect (r, &rect);
+}
+
+static void
+debug_draw_poly (b2Transform xfrm, const b2Vec2* vertices, int vertexCount, float radius, b2HexColor color, void* context)
+{
+    struct game *game = context;
+    b2Vec2 p = xfrm.p;
+
+    ASSERT (vertexCount == 4);
+
+    v2 topleft = {
+        .x = p.x, // + vertices[0].x,
+        .y = p.y, // + vertices[0].y,
+    };
+    v2 extent = {
+        .w = fabs (vertices[0].x) + fabs (vertices[2].x),
+        .h = fabs (vertices[0].y) + fabs (vertices[2].y),
+    };
+
+    draw_rect (game->renderer, topleft, extent, color);
+}
+
 static bool
 detect_hit_aabb (struct entity *a, v2 new_p, struct entity *b)
 {
@@ -335,13 +421,22 @@ collision_detect (struct entity *a, struct entity *b, struct collision *collisio
     return hit;
 }
 
+
 static void
-draw_rect (struct game *game, struct entity *e)
+draw_entity (struct game *game, struct entity *e)
 {
     SDL_Rect r = {0};
+    v2 pos = e->pos;
 
-    r.x = e->pos.x * BLOCK_SIZE_PX;
-    r.y = e->pos.y * BLOCK_SIZE_PX;
+    if (e->type == E_TYPE_WALL)
+    {
+        b2Vec2 b2_pos = b2Body_GetPosition (e->body_id);
+        pos.x = b2_pos.x;
+        pos.y = b2_pos.y;
+    }
+
+    r.x = pos.x * BLOCK_SIZE_PX;
+    r.y = pos.y * BLOCK_SIZE_PX;
     r.w = BLOCK_SIZE_PX;
     r.h = BLOCK_SIZE_PX;
 
@@ -460,7 +555,7 @@ render (struct game *game)
         struct entity *e = &game->entities[i];
         if (e->type != E_TYPE_BALL)
         {
-            draw_rect (game, e);
+            draw_entity (game, e);
         }
     }
 
@@ -481,7 +576,10 @@ render (struct game *game)
             SDL_SetRenderDrawColor (game->renderer, 0xFF, 0x11, 0x11, 0xFF);
         }
 
-        draw_circle_filled (game->renderer, (e->pos.x + e->radius) * BLOCK_SIZE_PX, (e->pos.y + e->radius) * BLOCK_SIZE_PX, e->radius * BLOCK_SIZE_PX);
+        b2Vec2 pos = b2Body_GetPosition (e->body_id);
+
+        // printf ("%s> player: e->p=%.02f %.02f b2-pos=%.02f %.02f (id=%d)\n", __func__, e->pos.x, e->pos.y, pos.x, pos.y, e->body_id.index1);
+        draw_circle_filled (game->renderer, (pos.x + e->radius) * BLOCK_SIZE_PX, (pos.y + e->radius) * BLOCK_SIZE_PX, e->radius * BLOCK_SIZE_PX);
     }
 }
 
@@ -512,6 +610,7 @@ init (struct game *game)
 
     game->buffer = (u32 *) malloc (WINDOW_WIDTH * WINDOW_HEIGHT * sizeof (u32));
     game->dt = 1.0f / 60.0f;
+    game->sub_step_count = 4;
     game->pitch = sizeof (u32) * WINDOW_WIDTH; // u32 is 4 bytes :'(
 
     printf ("Initialising SDL\n");
@@ -533,10 +632,20 @@ init (struct game *game)
             WINDOW_WIDTH, WINDOW_HEIGHT);
     ASSERT (game->texture);
 
-    printf ("Initialising Box2D\n");
+    b2Version version = b2GetVersion ();
+    printf ("Initialising Box2D (v%d.%d.%d)\n", version.major, version.minor, version.revision);
     b2WorldDef world_def = b2DefaultWorldDef ();
-    world_def.gravity = (b2Vec2) { 0.0f, -10.0f };
-    b2WorldId world_id = b2CreateWorld (&world_def);
+    world_def.gravity = (b2Vec2) { 0.0f, 10.0f };
+    game->world_id = b2CreateWorld (&world_def);
+
+    // TODO: draw outlines instead?
+    game->debug_draw = (b2DebugDraw) {
+        .DrawSolidCircle = debug_draw_circle,
+        .DrawSolidPolygon = debug_draw_poly,
+        .useDrawingBounds = false,
+        .drawShapes = true,
+        .context = game,
+    };
 
     printf ("Loading map\n");
     /*
@@ -581,6 +690,12 @@ init (struct game *game)
     printf ("Added %d entities\n", game->n_entities);
 }
 
+static void
+cleanup (struct game *game)
+{
+    b2DestroyWorld (game->world_id);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -596,12 +711,17 @@ main (int argc, char **argv)
         SDL_SetRenderDrawColor (game.renderer, 0x00, 0x00, 0x00, 0xFF);
         SDL_RenderClear (game.renderer);
 
-        update (&game);
+//        update (&game);
+        b2World_Step (game.world_id, game.dt, game.sub_step_count);
+
         render (&game);
+        b2World_Draw (game.world_id, &game.debug_draw);
 
         SDL_RenderPresent (game.renderer);
         SDL_Delay (FRAME_TIME_MS);
     }
+
+    cleanup (&game);
 
     return 0;
 }
