@@ -1,6 +1,8 @@
 @echo off
 
-call "%USERPROFILE%\code\msvc\setup.bat"
+if not defined MSVC_HOST (
+    call "%USERPROFILE%\code\msvc\setup.bat"
+)
 
 if not exist SDL2.dll call sdl.bat
 if not exist lib\x64\box2d.lib call box2d.bat
